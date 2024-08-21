@@ -1,0 +1,90 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <iomanip>
+
+using namespace std;
+
+// структура для хранения данных по сменам
+struct Shift 
+{
+	string date;
+	double hoursWorked;
+	double planPercent;
+	double payment;
+};
+
+// функция для рассчета оплаты за отдельную смену
+double calculateShiftPayment(double hourlyRate, double hoursWorked, double planPercent) 
+{
+	return hourlyRate * hoursWorked + (hourlyRate * hoursWorked * (planPercent / 100));
+}
+
+int main()
+{
+	setlocale(LC_ALL, "Russian");
+
+	double hourlyRate;
+	int numberOfShifts;
+
+	cout << "Введите часовую ставку: ";
+	cin >> hourlyRate;
+	cout << "Введите кол-во смен: ";
+	cin >> numberOfShifts;
+
+	vector<Shift>shifts;
+
+	// Запись информации по каждой смене
+	for (int i = 0; i < numberOfShifts; ++i)
+	{
+		Shift shift;
+		cout << "Дата смены (дд.мм): ";
+		cin >> shift.date;
+		cout << "Кол-во отработанных часов: ";
+		cin >> shift.hoursWorked;
+		cout << "Процент выполненного плана (0-100): ";
+		cin >> shift.planPercent;
+
+		shift.payment = calculateShiftPayment(hourlyRate, shift.hoursWorked, shift.planPercent);
+		shifts.push_back(shift);
+	}
+
+	// Запись в файл
+	ofstream outFile("payday_report.txt");
+	if (!outFile)
+	{
+		cerr << "Ошибка открытия файла для записи!" << endl;
+		return 1;
+	}
+
+	double totalPayday = 0.0;
+	outFile << "Кол-во смен: " << numberOfShifts << endl;
+
+	for (const auto& shift : shifts)
+	{
+		outFile << "Дата: " << shift.date << ", Оплата за смену: " << fixed << setprecision(2) << shift.payment << " рублей" << endl;
+		totalPayday += shift.payment;
+	}
+
+	outFile << "Общая зарплата: " << fixed << setprecision(2) << totalPayday << " рублей" << endl;
+	outFile.close();
+
+	// Чтение из файла
+	ifstream inFile("payday_report.txt");
+	if (!inFile)
+	{
+		cerr << "Ошибка открытия файла для чтения!" << endl;
+		return 1;
+	}
+
+	cout << "\n--- Отчет о зарплате ---\n";
+	string line;
+	while (getline(inFile, line))
+	{
+		cout << line << endl;
+	}
+	inFile.close();
+
+	return 0;
+}
