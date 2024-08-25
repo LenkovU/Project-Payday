@@ -1,0 +1,258 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <iomanip>  // использовалась для уточнения кол-ва знаков после запятой выходных данных
+					// пока дирректива не нужна, но оставил, чтобы не забыть про нее в будущем
+
+using namespace std;
+
+double totalPayday = 0;
+
+// структура для хранения данных по сменам
+struct Shift
+{
+	string date;
+	int hoursWorked;
+	double hourlyRate;
+	double planPercent;
+	double payment;
+
+// вычисление оплаты за смену
+	double calculateShiftPayment()
+	{
+		payment = hoursWorked * hourlyRate * (planPercent / 100);
+		return payment;
+	}
+	
+// запись данных о каждой новой смене в файл
+	void writeToFile(ofstream& file) const
+	{
+		file << "Дата: " << date << "\nЧасы: " << hoursWorked << "\nПроцент плана: " << planPercent << "\nОплата за смену: " << payment << endl;
+	}
+
+// думаю как лучше организвать функцию вывода: в структуре или отдельной функцией
+	void display()
+	{
+		cout << "-----------------" << endl;
+		cout << "Дата: " << date << endl;
+		cout << "Часы: " << hoursWorked << endl;
+		cout << "Процент плана: " << planPercent << endl;
+		cout << "Оплата за смену: " << payment << endl;
+		cout << "-----------------" << endl;
+	}
+};
+
+// функция ввода данных
+// во время работы функции сразу считается общая зарплата и все данные записываются в файл
+void addShift(vector<Shift>& shifts)
+{
+	Shift newShift;
+	cout << "Введите дату: ";
+	cin >> newShift.date;
+	cout << "Введите часы: ";
+	cin >> newShift.hoursWorked;
+	cout << "Введите ставку: ";
+	cin >> newShift.hourlyRate;
+	cout << "Введите процент плана: ";
+	cin >> newShift.planPercent;
+
+	newShift.calculateShiftPayment();
+	totalPayday += newShift.payment; // общая зарплата
+	shifts.push_back(newShift);
+
+	ofstream file("Payday.txt", ios::app);
+	if (file.is_open())
+	{
+		newShift.writeToFile(file);
+		file.close();
+	}
+	else
+	{
+		cout << "Ошибка открытия файла!" << endl;
+	}
+	cout << "Смена добавлена.\n" << endl;
+}
+
+// функция вывода всех данных из файла на экран
+void displayShifts(const vector<Shift>& shifts)
+{
+	ifstream file("Payday.txt");
+	if (shifts.empty())
+	{
+		cout << "Нет добавленных смен." << endl;
+		return;
+	}
+	else if (file.is_open())
+	{
+		cout << "\n---Общий отчет---" << endl;
+		string line;
+		while (getline(file, line))
+		{
+			cout << line << endl;
+		}
+		cout << "\n-----------------\n" << "Общая зарплата: " << totalPayday << endl;
+		cout << "-----------------\n" << endl;
+	}
+
+	// старая функция вычисления общей зарплаты
+	// пока оставил, ну а вдруг че
+	/*if (file.is_open())
+	{
+		cout << "\n---Общий отчет---" << endl;
+		string line;
+		while (getline(file, line))
+		{
+			cout << line << endl;
+		}
+		cout << "\n-----------------\n" << "Общая зарплата: " << totalPayday << endl;
+		cout << "-----------------\n" << endl;
+	}*/
+
+
+	else
+	{
+		cout << "Ошибка открытия файла!" << endl;
+	}
+}
+
+// функция очистки файла
+// используется при выходе из программы
+void clearFile()
+{
+	ofstream file("Payday.txt", ios::trunc);
+	file.close();
+}
+
+// функция редактирования данных в файле
+// необходима доработка в перезаписи данных в файл
+// и вообще нужно реализовать два файла:
+// - в 1 файле хранятся данные введенные пользователем
+// - во 2 файле хранятся данные полученные в результате работы программы
+void redactFile(vector<Shift>& shifts)
+{
+	int index;
+	cout << "Введите номер смены для редактирования: ";
+	cin >> index;
+
+	if (index<1 || index>shifts.size())
+	{
+		cout << "Неверный номер смены!" << endl;
+		return;
+	}
+
+	Shift& shift = shifts[index - 1];
+	cout << "Редактирование смены: " << endl;
+
+	cout << "Текущая дата: " << shift.date << endl; // дата
+	cout << "Введите новую дату (или ничего): "; 
+	string newDate;
+	cin.ignore();
+	getline(cin, newDate);
+	if (!newDate.empty())
+	{
+		shift.date = newDate;
+	}
+
+	cout << "Текущие часы: " << shift.hoursWorked << endl; // часы
+	cout << "Введите новые часы (или ничего): ";
+	string newHours;
+	getline(cin, newHours);
+	if (!newHours.empty())
+	{
+		shift.hoursWorked = stoi(newHours);
+	}
+
+	cout << "Текущая ставка: " << shift.hourlyRate << endl; // тарифная ставка
+	cout << "Введите новую ставку (ини ничего): ";
+	string newRate;
+	getline(cin, newRate);
+	if (!newRate.empty())
+	{
+		shift.hourlyRate = stod(newRate);
+	}
+
+	cout << "Текущий процент плана: " << shift.planPercent << endl; // процент плана
+	cout << "Введите новый процент плана: ";
+	string newPlan;
+	getline(cin, newPlan);
+	if (!newPlan.empty())
+	{
+		shift.planPercent = stod(newPlan);
+	}
+
+	shift.calculateShiftPayment();
+	totalPayday = 0;
+	for (const auto& s : shifts)
+	{
+		totalPayday += s.payment;
+	}
+	cout << "Смена обновлена." << endl;
+}
+
+// функция удаленния данных о смене из файла
+void deleteShift(vector<Shift>& shifts)
+{
+	int index;
+	cout << "Введите номер смены для удаления: ";
+	cin >> index;
+
+	if (index<1 || index>shifts.size())
+	{
+		cout << "Невеный номер смены!" << endl;
+		return;
+	}
+
+	clearFile();
+	ofstream file("Payday.txt");
+	for (const auto& shift : shifts)
+	{
+		shift.writeToFile(file);
+	}
+	file.close();
+	cout << "Смена удалена." << endl;
+}
+
+int main()
+{
+	setlocale(LC_ALL, "Russian");
+
+	vector<Shift>shifts;
+	int choice;
+
+	do
+	{
+		cout << "Меню: " << endl;
+		cout << "1. Добавить смену" << endl;
+		cout << "2. Вывести данные" << endl;
+		cout << "3. Редактированть смену" << endl;
+		cout << "4. Удалить смену" << endl;
+		cout << "5. Выход" << endl;
+		cin >> choice;
+
+		// подобие интерфейса
+		switch (choice)
+		{
+		case 1:
+			addShift(shifts);
+			break;
+		case 2:
+			displayShifts(shifts);
+			break;
+		case 3:
+			redactFile(shifts);
+			break;
+		case 4:
+			deleteShift(shifts);
+			break;
+		case 5:
+			clearFile();
+			cout << "\nДосвидания!" << endl;
+			break;
+		default:
+			cout << "\nНеверный выбор!\n" << endl;
+		}
+	} while (choice != 5);
+	
+	return 0;
+}
